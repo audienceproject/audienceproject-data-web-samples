@@ -81,7 +81,7 @@ function getAdformKeyValuesString(keyValues) {
     for (var key in (keyValues || {})) {
         if (Object.hasOwnProperty.call(keyValues, key)) {
             var values = keyValues[key];
-            // Convert to array for consistency. Value is scalar or array, we need to adopt
+            // If value is scalar, we convert to array for consistency. Then value is always array of 1+ values
             if (!Array.isArray(values)) {
                 values = [values];
             }
@@ -103,7 +103,6 @@ function getAdformKeyValuesString(keyValues) {
  */
 function addKeyValuesToAdformBidders(keyValues) {
     var kvString = getAdformKeyValuesString(keyValues);
-    console.log("kvString", kvString);
 
     if (!kvString) return;
 
@@ -123,10 +122,35 @@ function addKeyValuesToAdformBidders(keyValues) {
 }
 
 
-/*
+/**
  * Process Prediction results, handling is publisher specific based on goals
+ * @example <caption>Example input to function</caption>
+ * {
+    "type": "RETURNED",
+    "ap": {
+        "segments": [
+        "1100",
+        "1404",
+        "1409",
+        "1408",
+        "1407",
+        "1405",
+        ]
+    },
+    "keyValues": {
+        "ap_emp": "2",
+        "ap_chi": "0",
+        "ap_hhs": "1",
+        "ap_inc": "2",
+        "ap_gen": "0",
+        "ap_stda": "5",
+        "ap_edu": "2"
+    }
+    }
  */
 function onAudienceProjectDataAvailable(dataResponse) {
+    console.log("AudienceProject data returned", dataResponse);
+    
     // in keyValues there are full-reach key-values created, they needs to be sent to GAM and added to Prebid adform ad-units
     if (dataResponse.keyValues) {
         addKeyValuesToGPT(dataResponse.keyValues);
@@ -147,7 +171,7 @@ function onAudienceProjectDataAvailable(dataResponse) {
 
 //--------- END: AdienceProject data integration functions ---------//
 
-//--------- Emulation of real ad-tech stack. Important points are commented ---------//
+//--------- Emulation of real ad-tech stack. Important points are marked ---------//
 var PREBID_TIMEOUT = 3000;
 var FAILSAFE_TIMEOUT = 3000;
 
@@ -251,7 +275,8 @@ function initAdTechStack() {
 
     // Hold back ad-tech stack initialisation until consent choise is made
     window.__tcfapi('addEventListener', 2, function (tcData, success) {
-        if (success && tcData.tcString && !initAdTechStack.called) {
+        var isConsentChoiceMade = tcData.eventStatus === 'tcloaded' || tcData.eventStatus === 'useractioncomplete';
+        if (success && isConsentChoiceMade && !initAdTechStack.called) {
             initAdTechStack.called = true;
             initAdTechStack();
         }
